@@ -1,18 +1,3 @@
-/*
-  Arduino BMM150 - Simple Magnetometer
-
-  This example reads the magnetic field values from the BMM150
-  sensor and continuously prints them to the Serial Monitor
-  or Serial Plotter.
-
-  The circuit:
-  - Arduino Nano 33 BLE Sense Rev2
-
-  created 10 Jul 2019
-  by Riccardo Rizzo
-
-  This example code is in the public domain.
-*/
 
 #include <cmath>
 #include <BasicLinearAlgebra.h>
@@ -83,6 +68,8 @@ void serialVec3(vec3 a){
 vec3 curAcc;
 vec3 curMag;
 
+vec3 curCross;
+
 
 
 // const vec3 MAG_BIAS = {20, -7, -4};
@@ -104,13 +91,24 @@ void pollSensors(){
 
 }
 
+void updateCross(){
+
+  curCross = vecCross(curAcc, curMag);
+
+  float test1 = vecDot(curCross, curAcc);
+  float test2 = vecDot(curCross, curMag);
+
+  Serial.print(test1);
+  Serial.print(", ");
+  Serial.println(test2);
+
+}
 
 
 
 void setup() {
+  // this will fail if usb serial is not plugged in???
   Serial.begin(9600);
-  while (!Serial);
-  Serial.println("Started");
 
   if (!IMU.begin()) {
     Serial.println("Failed to initialize IMU!");
@@ -123,6 +121,12 @@ void setup() {
   Serial.print("Accel sample rate = ");
   Serial.print(IMU.accelerationSampleRate());
   Serial.println(" Hz");
+
+
+
+  Serial1.begin(9600);
+  
+
 }
 
 
@@ -135,11 +139,12 @@ void setup() {
 
 void loop() {
   pollSensors();
+  updateCross();
   
   // Serial.println("current acc");
   // printVec3(curAcc);
   // Serial.println("current mag");
-  serialVec3(curMag);
+  // serialVec3(curMag);
 
   delay(20);
 
