@@ -66,8 +66,7 @@ float vecLen(vec3 a){
 
 vec3 vecNormalize(vec3 a){
   float l = vecLen(a);
-  printvec(a);
-  if(l < 0.001f) Serial.println("DENORM VALUE");
+  if(l < 0.001f) Serial.print("DENORM VALUE");
   return vecMult(a, 1/l) ;
 }
 
@@ -120,6 +119,7 @@ vec3 getaverage()
   retval = vecAdd(retval, calibratedbuffer[2]);
   retval = vecAdd(retval, calibratedbuffer[3]);
   retval = vecAdd(retval, calibratedbuffer[4]);
+  return retval;
 }
 
 void loop() {
@@ -166,11 +166,8 @@ void loop() {
   magcal = getaverage();
   magcal = vecNormalize(magcal);
   gravnorm = vecNormalize(grav);
-  printvec(gravnorm);
   flatwest = vecCross(magcal, gravnorm);
-  printvec(gravnorm);
-  printvec(magcal);
-  printvec(flatwest);
+  
   flatwest = vecNormalize(flatwest);
   flatnorth = vecCross(gravnorm, flatwest);
   flatnorth = vecNormalize(flatnorth);
@@ -211,44 +208,65 @@ void loop() {
   {
     max_z = mag.z;
   }
-  Serial.print(grav.x);
-  Serial.print('\t');
-  Serial.print(grav.y);
-  Serial.print('\t');
-  Serial.print(grav.z);
-  Serial.print('\t');
-
-  Serial.print('|');
-  Serial.print(flatnorth.x);
-  Serial.print('\t');
-  Serial.print(flatnorth.y);
-  Serial.print('\t');
-  Serial.print(flatnorth.z);
-  Serial.print('\t');
-  Serial.print(theta_z);
-  Serial.print('\t');
-  Serial.print(len);
-  Serial.print('\t');
-
-  Serial.print("\t [");
-  Serial.print(min_x);
-  Serial.print(",\t");
-  Serial.print(max_x);
-  Serial.print("]");
   
-  Serial.print("\t [");
-  Serial.print(min_y);
-  Serial.print(",\t");
-  Serial.print(max_y);
-  Serial.print("]");
+  //print direction
+  if(theta_z > -15 && theta_z < 15)
+  {
+    Serial.print("N");
+  }
+  else if(theta_z >= 15 && theta_z <= 75)
+  {
+    Serial.print("NW");
+  }
+  else if(theta_z > 75 && theta_z < 105)
+  {
+    Serial.print("W");
+  }
+  else if(theta_z >= 105 && theta_z <= 165)
+  {
+    Serial.print("SW");
+  }
+  else if(theta_z > 165 && theta_z < 195)
+  {
+    Serial.print("S");
+  }
+  else if(theta_z >= 195 && theta_z <= 255)
+  {
+    Serial.print("SE");
+  }
+  else if(theta_z >= -75 && theta_z <= -15)
+  {
+    Serial.print("NE");
+  }
+  else if(theta_z > 255 || theta_z < -75)
+  {
+    Serial.print("E");
+  }
+ //printvec(grav);
+ //Serial.print('|');
+ //printvec(flatnorth);
+ Serial.print('\t');
+ Serial.println(theta_z);
 
-  Serial.print("\t [");
-  Serial.print(min_z);
-  Serial.print(",\t");
-  Serial.print(max_z);
-  Serial.print("]");
+ //Serial.print("\t [");
+ //Serial.print(min_x);
+ //Serial.print(",\t");
+ //Serial.print(max_x);
+ //Serial.print("]");
+ //
+ //Serial.print("\t [");
+ //Serial.print(min_y);
+ //Serial.print(",\t");
+ //Serial.print(max_y);
+ //Serial.print("]");
 
-  Serial.print('\n');
+ //Serial.print("\t [");
+ //Serial.print(min_z);
+ //Serial.print(",\t");
+ //Serial.print(max_z);
+ //Serial.print("]");
+
+ //Serial.print('\n');
 
  
 }
