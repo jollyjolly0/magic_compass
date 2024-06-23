@@ -1,10 +1,35 @@
 #define SerialLoRa Serial1
 
-const char SENDCODE_LATLON = '1';
+
 
 const int LORA_GENERATE_ID = 1234;
+
+const String SENDCODE_CONV = "1";
+const String SENDCODE_DISCOVERY = "2";
+const String SENDCODE_LATLON = "3";
+
 int val;
 
+int num_messages = 0;
+
+ 
+unsigned long lastSendTime = 0;
+
+unsigned long lastRcvTime = 0;
+
+unsigned long stateEnterTime = 0;
+
+const unsigned long sendInterval = 8000;
+
+float cur_lat = 0;
+float cur_lon = 0;
+
+int current_delay = 0;
+
+
+const unsigned long WINDOW_TIME = 4000;
+
+unsigned long currentTime = 0;
 
 String BlockingCommandLoRa(String cmd){
   Serial.print("Blocking Command: ");
@@ -92,13 +117,58 @@ void ConfigureLoRa(unsigned short address) {
   Serial.println(cmd_response);
 }
 
-void SendLoRa(char sendCode, String payload) {
+const int STATE_BOOTING = -1;
+const int STATE_LISTEN = 0;
+const int STATE_DISCOVERY = 1;
+const int STATE_CONVERSATION = 2;
+
+int currentState = STATE_BOOTING;
+
+
+float last_lat = -1;
+float last_lon = -1;
+
+
+char extract_char_after_second_comma(const char *str) {
+    int comma_count = 0;
+    const char *ptr = str;
+
+    // Iterate through the string
+    while (*ptr != '\0') {
+        // Check for comma
+        if (*ptr == ',') {
+            comma_count++;
+            // Check if it's the second comma
+            if (comma_count == 2) {
+                // Move pointer to the character after the second comma
+                ptr++;
+                // Return the character
+                return *ptr;
+            }
+        }
+        // Move to the next character
+        ptr++;
+    }
+
+    // If the second comma is not found or there are no characters after it, return '\0'
+    return '\0';
+}
+
+
+
+void SendLoRa(String sendCode, String payload){
   Serial.print("Send LoRa cmd: ");
-  String cmd = "AT+SEND=0," + String(payload.length() + 1) + "," + String(sendCode) + String(payload) + "\r";
+  String cmd = "AT+SEND=0,"+String(payload.length() + 1) +","+ String(sendCode) + String(payload)+"\r";
   Serial.println(cmd);
   SerialLoRa.println(cmd);
 }
 
+void LoRaBand(){
+  Serial.print("Send LoRa cmd: ");
+  String cmd = "AT+BAND=470000000";
+  Serial.println(cmd);
+  SerialLoRa.println(cmd);
+}
 
 void SendLatLon(float lat, float lon) {
   char* p_lat = (char*)(&lat);
@@ -114,20 +184,54 @@ void SendLatLon(float lat, float lon) {
   Serial.print("preparing lat lon payload: ");
   Serial.println(payload);
 
-  SendLoRa(SENDCODE_LATLON, payload);
+
+  Serial.print(  (String("Sending Lat Lon : ") +  String(millis()) ) + "\n" );
+
+  SendLoRa(SENDCODE_CONV, payload);
 }
 
+void SendIncremented(){
+    Serial.print("Time since last send: ");
+    Serial.println((millis()-lastSendTime));
 
 
+  char* inc = (char*)(&num_messages);
 
-void ProcessLoRa(String cmd) {
-  // check for +OK string
-  String OK = cmd.substring(0, 3);
-  if (OK == "+OK") {
-    Serial.print("Command Successful: ");
-    Serial.println(cmd);
-    return;
-  }
+
+  // clean this up? ...
+  String payload = String("EXTRA_DATA") + String("data=") + String(num_messages); // lol ;)
+
+  // Serial.print("preparing inc payload: ");
+  // Serial.println(payload);
+
+  SendLoRa(SENDCODE_CONV, payload);
+
+  num_messages++;
+}
+
+void SendDiscovery(){
+  String payload = String("DISCOVERY"); // lol ;)
+  Serial.print("preparing discovery payload: ");
+  Serial.println(payload);
+
+  SendLoRa(SENDCODE_DISCOVERY, payload);
+}
+
+void ProcessDiscovery(){
+  lastRcvTime = millis();
+  // EnterConversationState();
+}
+
+void ProcessConversation(String payload){
+
+  lastRcvTime = millis();
+
+  Serial.print("Conversation Processed: ");
+  Serial.println(payload);
+}
+
+void ProcessLoRa(String cmd){
+  // check for REC string
 
   // too short to be a usable payload
   if (cmd.length() < 14) {
@@ -144,11 +248,14 @@ void ProcessLoRa(String cmd) {
     return;
   }
 
-  Serial.print("*** RECEIVED *** ");
+
   Serial.print("Process LoRa message: ");
   Serial.println(cmd);
 
-  String sendCode_str = cmd.substring(9, 10);
+  // TODO properly parse string 
+  
+  // String sendCode_str = cmd.substring(14,15);
+  String sendCode_str = String(extract_char_after_second_comma(cmd.c_str()));
 
   Serial.print("sendCode_str: ");
   Serial.println(sendCode_str);
@@ -163,16 +270,23 @@ void ProcessLoRa(String cmd) {
 
   Serial.print("payload_str: ");
   Serial.println(payload_str);
+
+  if (sendCode_str == SENDCODE_DISCOVERY){
+    ProcessDiscovery();
+  }else if (sendCode_str == SENDCODE_CONV){
+    ProcessConversation(payload_str);
+  }
+
 }
 
-void PollLoRa() {
+void PollLoRa(){
   //Serial.println("Polling for LoRa message");
   String inString;
-
-  if (SerialLoRa.available()) {
-    while (SerialLoRa.available()) {
-      // should this be a while loop? can it build up multiple messages?
-      if (SerialLoRa.available()) {
+  
+  if(SerialLoRa.available()){
+    while (SerialLoRa.available()){
+    // should this be a while loop? can it build up multiple messages? 
+      if(SerialLoRa.available()){
         inString += String(char(SerialLoRa.read()));
       }
     }
@@ -181,35 +295,124 @@ void PollLoRa() {
 }
 
 
-void setup() {
-  delay(5000); // delay so i have time to connect serial port
 
-  Serial.begin(115200);
-  SerialLoRa.begin(115200);
+unsigned long nextDiscoveryTime = -1;
 
-  ConfigureLoRa(LORA_GENERATE_ID);
+unsigned long GetNextDiscovery(){
+  unsigned long time = millis() + random(1,3) * WINDOW_TIME;
+  Serial.print(  (String("Next Discovery Time: ") +  String(time) ) + "\n" );
+  return time;
 }
 
-unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 10000;
+void EnterDiscoveryState(){
+  Serial.println("enter discovery");
 
-float cur_lat = 0;
-float cur_lon = 0;
+  currentState = STATE_DISCOVERY;
 
-void loop() {
-  //Serial.println("begin loop");
-  unsigned long time = millis();
+  lastRcvTime = 0;
+  stateEnterTime = millis();
+
+  // calculate next discovery
+  nextDiscoveryTime = GetNextDiscovery();
+}
+
+void DiscoveryState(){
+
+  // get a random number (0,1)
+  // wait either 0 or 1 seconds 
+
+  if ( millis() > nextDiscoveryTime ){
+    // send, and set new discovery time
+    
+    if (lastRcvTime != 0){
+      EnterConversationState();
+    }else{
+      SendDiscovery();
+      nextDiscoveryTime = GetNextDiscovery();
+    }
+  }
+  
+  PollLoRa();
+
+}
 
 
-  if (time - lastSendTime > sendInterval) {
-    // SendLatLon(cur_lat, cur_lon);
-    lastSendTime = time;
+unsigned long nextConversationTime = -1;
+
+
+unsigned long GetNextConversation(){
+  return millis() + 2 * WINDOW_TIME;
+}
+
+
+void EnterConversationState(){
+  if (currentState == STATE_CONVERSATION){
+    return;
   }
 
-  cur_lat = cur_lat + 1;
-  cur_lon = cur_lon + 2;
+  Serial.println("enter conversation");
+  currentState = STATE_CONVERSATION;
+  stateEnterTime = millis();
 
-  // intentionally process after send to see if send and receive clobber eachother on serial?
+  nextConversationTime = GetNextConversation();
+}
 
+void ConversationState(){
+  // get a random number (0,1)
+  // wait either 0 or 1 seconds 
+
+  if ( millis() > nextConversationTime ){
+    SendLatLon(0.1, 1.2);
+    nextConversationTime = GetNextConversation();
+  }
+  
   PollLoRa();
 }
+
+void ListenState(){
+  PollLoRa();
+}
+
+ 
+void ProcessComms(){
+  if (currentState == STATE_DISCOVERY){
+    DiscoveryState();
+  }
+  else if (currentState == STATE_CONVERSATION){
+    ConversationState();
+  }
+}
+
+
+
+void setup()
+{
+
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  SerialLoRa.begin(115200);
+  delay(5000);
+  
+  // initialize random seed with analog noise
+
+  int analog0 = analogRead(0);
+  Serial.print("seed: ");
+  Serial.println(analog0);
+
+
+  randomSeed(analog0);
+
+  Serial.println("booted");
+  ConfigureLoRa(LORA_GENERATE_ID);
+
+  EnterDiscoveryState();
+}
+
+
+
+void loop()
+{
+  currentTime = millis();
+  ProcessComms();
+}
+
