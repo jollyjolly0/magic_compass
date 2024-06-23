@@ -110,7 +110,7 @@ def gather_data(save_name):
 
     finally:
         if save_name is None:
-            save_name = f"magnet_data_{int(time.time())}"
+            save_name = f"magnet_data_{int(time.time())}.clb"
         
         np.savetxt(save_name, data)
 

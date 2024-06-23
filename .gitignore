@@ -1,1 +1,6 @@
 *venv/
+.vscode
+output
+*/calibration_data
+
+*.clb

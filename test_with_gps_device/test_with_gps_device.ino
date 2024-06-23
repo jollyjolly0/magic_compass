@@ -16,6 +16,8 @@ static void print_int(unsigned long val, unsigned long invalid, int len);
 static void print_date(TinyGPS &gps);
 static void print_str(const char *str, int len);
 
+#define GPS_SERIAL Serial1
+
 void setup()
 {
   Serial.begin(115200);
@@ -27,7 +29,7 @@ void setup()
   Serial.println("          (deg)     (deg)      Age                      Age  (m)    --- from GPS ----  ---- to London  ----  RX    RX        Fail");
   Serial.println("-------------------------------------------------------------------------------------------------------------------------------------");
 
-  Serial2.begin(9600);
+  GPS_SERIAL.begin(9600);
 }
 
 void loop()
@@ -66,8 +68,8 @@ static void smartdelay(unsigned long ms)
   unsigned long start = millis();
   do 
   {
-    while (Serial2.available())
-      gps.encode(Serial2.read());
+    while (GPS_SERIAL.available())
+      gps.encode(GPS_SERIAL.read());
   } while (millis() - start < ms);
 }
 
