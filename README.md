@@ -38,3 +38,8 @@ Run prebuild
 
 If you mess up your ARduino 15 directory, you can safely delete it, and redownload it using Arduino IDE
 
+
+
+## Wiring Diagram
+
+Diagram was made using https://www.circuit-diagram.org/editor/

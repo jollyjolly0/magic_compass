@@ -1,4 +1,4 @@
-#define SerialLoRa Serial1
+#define SerialLoRa Serial2
 
 
 
