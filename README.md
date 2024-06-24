@@ -19,6 +19,8 @@ Prereqs, python, arduino-cli (https://arduino.github.io/arduino-cli/1.0/installa
 
 To start, download the arduino IDE (2.3.2). The projects should be able to be built and deployed through there. 
 
+can install tinygps using arduino IDE 
+
 ## Hardware setup 
 
 Info on wiring is included in the docs folder
