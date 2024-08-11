@@ -3,21 +3,21 @@
 
 
 String LoRA::BlockingCommandLoRa(String cmd){
-  Serial.print("Blocking Command: ");
-  Serial.println(cmd);
-  SerialLoRa.println(cmd);
+  logging_serial.print("Blocking Command: ");
+  logging_serial.println(cmd);
+  lora_serial.println(cmd);
   String response;
   // wait for response
-  while (!SerialLoRa.available()) {
+  while (!lora_serial.available()) {
     delay(5);
   }
-  while (SerialLoRa.available()) {
-    if (SerialLoRa.available()) {
-      response += String(char(SerialLoRa.read()));
+  while (lora_serial.available()) {
+    if (lora_serial.available()) {
+      response += String(char(lora_serial.read()));
     }
   }
-  // Serial.print("Response: ");
-  // Serial.println(cmd_response);
+  // logging_serial.print("Response: ");
+  // logging_serial.println(cmd_response);
   return response;
 
 }
@@ -38,11 +38,11 @@ void LoRA::ConfigureLoRa(unsigned short address) {
   unsigned short set_address = address;
 
   if (address == LORA_GENERATE_ID){
-    Serial.println("generating address from chip UID...");
+    logging_serial.println("generating address from chip UID...");
     String at_uuid_cmd = "AT+UID?";
     cmd_response = BlockingCommandLoRa(at_uuid_cmd);
-    Serial.print("uid response: ");
-    Serial.println(cmd_response);
+    logging_serial.print("uid response: ");
+    logging_serial.println(cmd_response);
 
     String uid = cmd_response.substring(5,256); // 5 to the end
     
@@ -59,33 +59,33 @@ void LoRA::ConfigureLoRa(unsigned short address) {
       set_address = 1;
     }
 
-    Serial.print("generated address: ");
-    Serial.println(set_address);
+    logging_serial.print("generated address: ");
+    logging_serial.println(set_address);
   }
 
 
   String at_address_cmd = "AT+ADDRESS=" + String(set_address);
   cmd_response = BlockingCommandLoRa(at_address_cmd);
-  Serial.print("address_response: ");
-  Serial.println(cmd_response);
+  logging_serial.print("address_response: ");
+  logging_serial.println(cmd_response);
 
 
   String at_networkid_cmd = "AT+NETWORKID=" + NETWORK_ID;
   cmd_response = BlockingCommandLoRa(at_networkid_cmd);
-  Serial.print("networkID response: ");
-  Serial.println(cmd_response);
+  logging_serial.print("networkID response: ");
+  logging_serial.println(cmd_response);
 
 
   String at_band_cmd = "AT+BAND=" + FREQ_BAND;
   cmd_response = BlockingCommandLoRa(at_band_cmd);
-  Serial.print("band response: ");
-  Serial.println(cmd_response);
+  logging_serial.print("band response: ");
+  logging_serial.println(cmd_response);
 
 
   String at_param_cmd = "AT+PARAMETER=" + SPREAD_FACTOR + "," + BANDWIDTH + "," + CODING_RATE + "," + PREAMBLE;
   cmd_response = BlockingCommandLoRa(at_param_cmd);
-  Serial.print("param response: ");
-  Serial.println(cmd_response);
+  logging_serial.print("param response: ");
+  logging_serial.println(cmd_response);
 }
 
 
@@ -118,17 +118,17 @@ char LoRA::extract_char_after_second_comma(const char *str) {
 
 
 void LoRA::SendLoRa(String sendCode, String payload){
-  Serial.print("Send LoRa cmd: ");
+  logging_serial.print("Send LoRa cmd: ");
   String cmd = "AT+SEND=0,"+String(payload.length() + 1) +","+ String(sendCode) + String(payload)+"\r";
-  Serial.println(cmd);
-  SerialLoRa.println(cmd);
+  logging_serial.println(cmd);
+  lora_serial.println(cmd);
 }
 
 void LoRA::LoRaBand(){
-  Serial.print("Send LoRa cmd: ");
+  logging_serial.print("Send LoRa cmd: ");
   String cmd = "AT+BAND=470000000";
-  Serial.println(cmd);
-  SerialLoRa.println(cmd);
+  logging_serial.println(cmd);
+  lora_serial.println(cmd);
 }
 
 void LoRA::SendLatLon(float lat, float lon) {
@@ -142,18 +142,18 @@ void LoRA::SendLatLon(float lat, float lon) {
   memcpy(&(payload[0]), p_lat, 4);
   memcpy(&(payload[4]), p_lon, 4);
 
-  Serial.print("preparing lat lon payload: ");
-  Serial.println(payload);
+  logging_serial.print("preparing lat lon payload: ");
+  logging_serial.println(payload);
 
 
-  Serial.print(  (String("Sending Lat Lon : ") +  String(millis()) ) + "\n" );
+  logging_serial.print(  (String("Sending Lat Lon : ") +  String(millis()) ) + "\n" );
 
   SendLoRa(SENDCODE_CONV, payload);
 }
 
 void LoRA::SendIncremented(){
-    Serial.print("Time since last send: ");
-    Serial.println((millis()-lastSendTime));
+    logging_serial.print("Time since last send: ");
+    logging_serial.println((millis()-lastSendTime));
 
 
   char* inc = (char*)(&num_messages);
@@ -162,8 +162,8 @@ void LoRA::SendIncremented(){
   // clean this up? ...
   String payload = String("EXTRA_DATA") + String("data=") + String(num_messages); // lol ;)
 
-  // Serial.print("preparing inc payload: ");
-  // Serial.println(payload);
+  // logging_serial.print("preparing inc payload: ");
+  // logging_serial.println(payload);
 
   SendLoRa(SENDCODE_CONV, payload);
 
@@ -172,8 +172,8 @@ void LoRA::SendIncremented(){
 
 void LoRA::SendDiscovery(){
   String payload = String("DISCOVERY"); // lol ;)
-  Serial.print("preparing discovery payload: ");
-  Serial.println(payload);
+  logging_serial.print("preparing discovery payload: ");
+  logging_serial.println(payload);
 
   SendLoRa(SENDCODE_DISCOVERY, payload);
 }
@@ -187,8 +187,8 @@ void LoRA::ProcessConversation(String payload){
 
   lastRcvTime = millis();
 
-  Serial.print("Conversation Processed: ");
-  Serial.println(payload);
+  logging_serial.print("Conversation Processed: ");
+  logging_serial.println(payload);
 }
 
 void LoRA::ProcessLoRa(String cmd){
@@ -196,41 +196,41 @@ void LoRA::ProcessLoRa(String cmd){
 
   // too short to be a usable payload
   if (cmd.length() < 14) {
-    Serial.print("Received packet too small for transmission: ");
-    Serial.println(cmd);
+    logging_serial.print("Received packet too small for transmission: ");
+    logging_serial.println(cmd);
     return;
   }
 
   // check for REC string
   String recv = cmd.substring(0, 4);
   if (recv != "+RCV") {
-    Serial.print("Not a receive packet. discarding : ");
-    Serial.println(cmd);
+    logging_serial.print("Not a receive packet. discarding : ");
+    logging_serial.println(cmd);
     return;
   }
 
 
-  Serial.print("Process LoRa message: ");
-  Serial.println(cmd);
+  logging_serial.print("Process LoRa message: ");
+  logging_serial.println(cmd);
 
   // TODO properly parse string 
   
   // String sendCode_str = cmd.substring(14,15);
   String sendCode_str = String(extract_char_after_second_comma(cmd.c_str()));
 
-  Serial.print("sendCode_str: ");
-  Serial.println(sendCode_str);
+  logging_serial.print("sendCode_str: ");
+  logging_serial.println(sendCode_str);
 
   String payloadLen_str = cmd.substring(10, 14);
   int payloadLen = payloadLen_str.toInt();
 
-  Serial.print("payloadLen_str: ");
-  Serial.println(payloadLen_str);
+  logging_serial.print("payloadLen_str: ");
+  logging_serial.println(payloadLen_str);
 
   String payload_str = cmd.substring(14, 15 + payloadLen);
 
-  Serial.print("payload_str: ");
-  Serial.println(payload_str);
+  logging_serial.print("payload_str: ");
+  logging_serial.println(payload_str);
 
   if (sendCode_str == SENDCODE_DISCOVERY){
     ProcessDiscovery();
@@ -241,14 +241,14 @@ void LoRA::ProcessLoRa(String cmd){
 }
 
 void LoRA::PollLoRa(){
-  //Serial.println("Polling for LoRa message");
+  //logging_serial.println("Polling for LoRa message");
   String inString;
   
-  if(SerialLoRa.available()){
-    while (SerialLoRa.available()){
+  if(lora_serial.available()){
+    while (lora_serial.available()){
     // should this be a while loop? can it build up multiple messages? 
-      if(SerialLoRa.available()){
-        inString += String(char(SerialLoRa.read()));
+      if(lora_serial.available()){
+        inString += String(char(lora_serial.read()));
       }
     }
     ProcessLoRa(inString);
@@ -259,12 +259,12 @@ void LoRA::PollLoRa(){
 
 unsigned long LoRA::GetNextDiscovery(){
   unsigned long time = millis() + random(1,3) * WINDOW_TIME;
-  Serial.print(  (String("Next Discovery Time: ") +  String(time) ) + "\n" );
+  logging_serial.print(  (String("Next Discovery Time: ") +  String(time) ) + "\n" );
   return time;
 }
 
 void LoRA::EnterDiscoveryState(){
-  Serial.println("enter discovery");
+  logging_serial.println("enter discovery");
 
   currentState = STATE_DISCOVERY;
 
@@ -308,7 +308,7 @@ void LoRA::EnterConversationState(){
     return;
   }
 
-  Serial.println("enter conversation");
+  logging_serial.println("enter conversation");
   currentState = STATE_CONVERSATION;
   stateEnterTime = millis();
 
@@ -347,20 +347,20 @@ void LoRA::init()
 {
 
   // put your setup code here, to run once:
-  Serial.begin(9600);
-  SerialLoRa.begin(115200);
+  // logging_serial.begin(9600);
+  // lora_serial.begin(115200);
   delay(5000);
   
   // initialize random seed with analog noise
 
   int analog0 = analogRead(0);
-  Serial.print("seed: ");
-  Serial.println(analog0);
+  logging_serial.print("seed: ");
+  logging_serial.println(analog0);
 
 
   randomSeed(analog0);
 
-  Serial.println("booted");
+  logging_serial.println("booted");
   ConfigureLoRa(LORA_GENERATE_ID);
 
   EnterDiscoveryState();
@@ -372,4 +372,9 @@ void LoRA::update()
 {
   currentTime = millis();
   ProcessComms();
+}
+
+LoRA::LoRA(arduino::Stream & lora_uart, arduino::Stream & logging_uart)
+ : lora_serial(lora_uart), logging_serial(logging_uart)
+{
 }

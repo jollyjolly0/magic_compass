@@ -19,6 +19,8 @@
 class LoRA{
 public:
 
+    LoRA(arduino::Stream & lora_serial, arduino::Stream & logging_serial);
+
     void init();
     void update();
 
@@ -29,6 +31,9 @@ private:
     const String SENDCODE_CONV = "1";
     const String SENDCODE_DISCOVERY = "2";
     const String SENDCODE_LATLON = "3";
+
+    arduino::Stream & lora_serial;
+    arduino::Stream & logging_serial;
 
     int val;
     int num_messages = 0;
