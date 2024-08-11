@@ -1,159 +1,65 @@
+#define SerialLoRa Serial2
 
-#include <cmath>
-#include <BasicLinearAlgebra.h>
-#include "Arduino_BMI270_BMM150.h"
-
-struct vec3  {
-  float x;
-  float y;
-  float z;
-};
+#include "lora.h"
+#include "vector3.h"
 
 
-vec3 vecAdd(vec3 a, vec3 b){
-  return { a.x+b.x,  a.y+b.y, a.z+b.z };
-}
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64,
 
-vec3 vecSub(vec3 a, vec3 b){
-  return { a.x-b.x,  a.y-b.y, a.z-b.z };
-}
-
-vec3 vecMult(vec3 a, float c){
-  return { c*a.x,  c*+a.y, c*a.z };
-}
-
-
-float vecDot(vec3 a, vec3 b){
-  return { a.x*b.x +  a.y*b.y + a.z*b.z };
-}
-
-vec3 vecCross(vec3 a, vec3 b){
-  vec3 ret;
-  ret.x = (a.y * b.z - a.z * b.y);
-  ret.y = (a.z * b.x - a.x * b.z);
-  ret.z = (a.x * b.y - a.y * b.x);
-  return ret;
-}
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 
-float vecLen(vec3 a){
-  return sqrt( vecDot(a,a)  );
-}
+LoRA lora = LoRA(SerialLoRa, Serial);
 
-vec3 vecNormalize(vec3 a){
-  float l = vecLen(a);
-  return vecMult(a, 1/l) ;
-}
 
-void printVec3(vec3 a){
-  Serial.print(a.x);
-  Serial.print(",\t");
-  Serial.print(a.y);
-  Serial.print(",\t");
-  Serial.print(a.z);
-  Serial.print("\n");
-}
 
-void serialVec3(vec3 a){
-  Serial.print(a.x);
-  Serial.print(",");
-  Serial.print(a.y);
-  Serial.print(",");
-  Serial.print(a.z);
-  Serial.print("\n");
+void update_display(void){
+  display.clearDisplay();
+  display.setTextSize(1);             // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setCursor(0,0);             // Start at top-left corner
+
+  display.println(F("My Pos: 1 2 3"));
+  display.println(F("Last recv pos / time"));
+  display.println(F("lora state: awd"));
+  display.println(F("metrics ..."));
+
+  display.display();
+  Serial.println("diisplayed");
+
+  delay(2000);
 }
 
 
 
-vec3 curAcc;
-vec3 curMag;
-
-vec3 curCross;
-
-
-
-// const vec3 MAG_BIAS = {20, -7, -4};
-const vec3 MAG_BIAS = {0, 0, 0};
-
-vec3 calibrateMag(vec3 mag){
-  return vecSub(mag, MAG_BIAS );
-}
-
-void pollSensors(){
-  if (IMU.magneticFieldAvailable()) {
-    IMU.readMagneticField(curMag.x, curMag.y, curMag.z);
-    curMag = calibrateMag(curMag);
-  }
-
-  if (IMU.accelerationAvailable()) {
-    IMU.readAcceleration(curAcc.x, curAcc.y, curAcc.z);
-  }
-
-}
-
-void updateCross(){
-
-  curCross = vecCross(curAcc, curMag);
-
-  float test1 = vecDot(curCross, curAcc);
-  float test2 = vecDot(curCross, curMag);
-
-  Serial.print(test1);
-  Serial.print(", ");
-  Serial.println(test2);
-
-}
-
-
-
-void setup() {
-  // this will fail if usb serial is not plugged in???
+void setup()
+{  
   Serial.begin(9600);
+  SerialLoRa.begin(115200);
+  delay(2000);
+  Serial.println("awd");
 
-  if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
-    while (1);
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
   }
-  Serial.print("Magneto sample rate = ");
-  Serial.print(IMU.magneticFieldSampleRate());
-  Serial.println(" Hz");
 
-  Serial.print("Accel sample rate = ");
-  Serial.print(IMU.accelerationSampleRate());
-  Serial.println(" Hz");
-
-
-
-  Serial1.begin(9600);
-  
+  lora.init();
 
 }
 
 
 
+void loop()
+{
+  lora.update();
 
-
-
-
-
-
-void loop() {
-  pollSensors();
-  updateCross();
-  
-  // Serial.println("current acc");
-  // printVec3(curAcc);
-  // Serial.println("current mag");
-  // serialVec3(curMag);
-
-  delay(20);
-
-
+  update_display();
 }
-
-
-
-
-
-
-
