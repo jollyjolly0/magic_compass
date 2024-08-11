@@ -4,7 +4,7 @@
 #include "vector3.h"
 
 
-LoRA lora = LoRA();
+LoRA lora = LoRA(SerialLoRa, Serial);
 
 
 void setup()
