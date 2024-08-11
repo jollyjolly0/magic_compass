@@ -13,7 +13,6 @@
 
 #define SerialLoRa Serial2
 
-
 // NEEDS Serial output to be init'd ?
 
 class LoRA{
@@ -23,6 +22,10 @@ public:
 
     void init();
     void update();
+
+
+    void set_send_lat_lon(float lat, float lon);
+    void get_rcv_lat_lon(float& lat_out, float& lon_out);
 
 private:
 
@@ -55,9 +58,11 @@ private:
 
     int currentState = STATE_BOOTING;
 
+    float send_lat = -1;
+    float send_lon = -1;
 
-    float last_lat = -1;
-    float last_lon = -1;
+    float rcv_lat = -1;
+    float rcv_lon = -1;
 
     
     unsigned long nextDiscoveryTime = -1;   
@@ -72,7 +77,7 @@ private:
     char extract_char_after_second_comma(const char *str);
     void SendLoRa(String sendCode, String payload);
     void LoRaBand();
-    void SendLatLon(float lat, float lon);
+    void SendLatLon();
     void SendIncremented();
     void SendDiscovery();
     void ProcessDiscovery();

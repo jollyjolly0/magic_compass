@@ -131,10 +131,12 @@ void LoRA::LoRaBand(){
   lora_serial.println(cmd);
 }
 
-void LoRA::SendLatLon(float lat, float lon) {
+void LoRA::SendLatLon() {
+  float lat = send_lat;
+  float lon = send_lon;
+
   char* p_lat = (char*)(&lat);
   char* p_lon = (char*)(&lon);
-
 
   // clean this up? ...
   String payload = String("LAT_LON_");  // lol ;)
@@ -189,6 +191,20 @@ void LoRA::ProcessConversation(String payload){
 
   logging_serial.print("Conversation Processed: ");
   logging_serial.println(payload);
+
+  // payload is presumed to be 8bytes. 
+  // first 4 is lat as a float, second 4 is long
+  String lat_str = payload.substring(0, 4);
+  String lon_str = payload.substring(4, 8);
+  float lat;
+  float lon;
+
+  memcpy(&lat, lat_str.c_str(), 4);
+  memcpy(&lon, lon_str.c_str(), 4);
+
+  rcv_lat = lat;
+  rcv_lon = lon;
+
 }
 
 void LoRA::ProcessLoRa(String cmd){
@@ -320,7 +336,7 @@ void LoRA::ConversationState(){
   // wait either 0 or 1 seconds 
 
   if ( millis() > nextConversationTime ){
-    SendLatLon(0.1, 1.2);
+    SendLatLon();
     nextConversationTime = GetNextConversation();
   }
   
@@ -377,4 +393,16 @@ void LoRA::update()
 LoRA::LoRA(arduino::Stream & lora_uart, arduino::Stream & logging_uart)
  : lora_serial(lora_uart), logging_serial(logging_uart)
 {
+}
+
+void LoRA::set_send_lat_lon(float lat, float lon)
+{
+  send_lat = lat;
+  send_lon = lon;
+}
+
+void LoRA::get_rcv_lat_lon(float &lat_out, float &lon_out)
+{
+  lat_out = rcv_lat;
+  lon_out = rcv_lon;
 }
