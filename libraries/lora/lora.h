@@ -25,6 +25,7 @@ public:
 
     void set_send_lat_lon(float lat, float lon);
     void get_rcv_lat_lon(float& lat_out, float& lon_out);
+    void get_rcv_time(float& last_time);
 
 private:
 
@@ -60,6 +61,7 @@ private:
     float send_lat = -1;
     float send_lon = -1;
 
+    float rcv_time = -1;
     float rcv_lat = -1;
     float rcv_lon = -1;
 

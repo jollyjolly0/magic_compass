@@ -30,31 +30,51 @@ TinyGPS gps;
 float flat, flon;
 unsigned long age = 0;
 
-
-float recv_lat, recv_lon;
+float recv_lat, recv_lon, recv_time;
 
 float heading_degrees; //0 is north, 90 is east
+float heading_dist;
 
 void update_display(void){
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
   display.setTextColor(SSD1306_WHITE);        // Draw white text
-  display.setCursor(0,0);             // Start at top-left corner
 
-  display.print(("x: "));
+  display.setCursor(0,0);           
+
+  char buffer[50];
+
+  // memset(buffer, 0, 50);
+  // sprintf(buffer, "%.4f", flat);
+  // display.print(buffer);
   display.print(flat);
-  display.print(", ");
+  display.print(",");
+
+  // memset(buffer, 0, 50);
+  // sprintf(buffer, "%.4f", flon);
+  // display.print(buffer);
   display.print(flon);
   display.println("");
 
-  display.print(("y: "));
+  // sprintf(buffer, "%.4f", recv_lat);
+  // display.print(buffer);
   display.print(recv_lat);
-  display.print(", ");
+  display.print(",");
+
+  // sprintf(buffer, "%.4f", recv_lon);
+  // display.print(buffer);
   display.print(recv_lon);
   display.println("");
 
-  display.print(("heading: "));
+  // display.print((" "));
   display.print(heading_degrees);
+  display.print((" / "));
+  display.print(heading_dist);
+  display.println("");
+
+  int time_diff = (millis() - recv_time)/1000;
+  display.print(("dt: "));
+  display.print(time_diff);
   display.println("");
 
   display.display();
@@ -98,6 +118,30 @@ float calculate_heading(float lat1, float lon1, float lat2, float lon2) {
     return heading_degrees;
 }
 
+float calculate_distance(float lat1, float lon1, float lat2, float lon2) {
+    const float R = 6371000; // Earth's radius in meters
+    
+    // Convert latitude and longitude to radians
+    float lat1_rad = lat1 * PI / 180.0f;
+    float lon1_rad = lon1 * PI / 180.0f;
+    float lat2_rad = lat2 * PI / 180.0f;
+    float lon2_rad = lon2 * PI / 180.0f;
+    
+    // Differences
+    float dlat = lat2_rad - lat1_rad;
+    float dlon = lon2_rad - lon1_rad;
+    
+    // Haversine formula
+    float a = sinf(dlat/2) * sinf(dlat/2) +
+              cosf(lat1_rad) * cosf(lat2_rad) * 
+              sinf(dlon/2) * sinf(dlon/2);
+    float c = 2 * atan2f(sqrtf(a), sqrtf(1-a));
+    
+    float distance = R * c;
+    
+    return 0;//distance;
+}
+
 
 
 
@@ -127,9 +171,11 @@ void loop()
   lora.update();
 
   lora.get_rcv_lat_lon(recv_lat, recv_lon);
+  lora.get_rcv_time(recv_time);
 
 
   heading_degrees = calculate_heading(flat, flon, recv_lat, recv_lon);
+  heading_dist = calculate_distance(flat, flon, recv_lat, recv_lon);
 
   update_display();
 }

@@ -122,6 +122,9 @@ void LoRA::SendLoRa(String sendCode, byte* payload, unsigned int num_bytes){
   
   byte* cmd_bytes = new byte[cmd.length() + num_bytes + 1];
 
+  logging_serial.print(cmd.length() + num_bytes + 1);
+  logging_serial.println("");
+
   memcpy(cmd_bytes, cmd.c_str(), cmd.length());
   memcpy(cmd_bytes + cmd.length(), payload, num_bytes );
   memcpy(cmd_bytes + cmd.length() + num_bytes, "\r", 1 );
@@ -161,7 +164,9 @@ void LoRA::SendLatLon() {
 
   // debuging lat lon
   char buffer[100];  // Adjust size as needed
-  sprintf(buffer, "\t lat: %.3f lon: %.3f, bytes: [%d %d %d %d] , [%d %d %d %d]", lat, lon,
+  sprintf(buffer, "\t lat: %.3f lon: %.3f, bytes: [%d %d %d %d] , [%d %d %d %d]",
+    lat,
+    lon,
     (byte)latlon_payload.s[0], 
     (byte)latlon_payload.s[1],
     (byte)latlon_payload.s[2],
@@ -235,6 +240,7 @@ void LoRA::ProcessConversation(byte* payload_ptr, int payload_len){
   
   rcv_lat = recv_latlon.f[0];
   rcv_lon = recv_latlon.f[1];
+  rcv_time = millis();
 
   // debuging lat lon
   char buffer[100];  // Adjust size as needed
@@ -272,7 +278,9 @@ void LoRA::ProcessLoRa(byte* msg_buffer, int msg_len){
   }
 
 
-  logging_serial.print("Process LoRa message: ");
+  logging_serial.print("Process LoRa message: " );
+  logging_serial.print(msg_len);
+  logging_serial.print(", ");
   logging_serial.write(msg_buffer, (size_t)msg_len);
 
   // TODO properly parse string 
@@ -460,4 +468,9 @@ void LoRA::get_rcv_lat_lon(float &lat_out, float &lon_out)
 {
   lat_out = rcv_lat;
   lon_out = rcv_lon;
+}
+
+void LoRA::get_rcv_time(float &last_time)
+{
+    last_time = rcv_time;
 }
