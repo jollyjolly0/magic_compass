@@ -8,8 +8,8 @@
 
 #include <TinyGPS.h>
 
-#include "lora.h"
-#include "vector3.h"
+#include "src/lora/lora.h"
+#include "src/vector3/vector3.h"
 
 #define GPS_SERIAL Serial1
 #define SerialLoRa Serial2
