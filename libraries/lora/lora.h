@@ -9,11 +9,11 @@
 #endif
 
 
-// TODO figure out how to pass in a serial port
 
-#define SerialLoRa Serial2
-
-// NEEDS Serial output to be init'd ?
+union LatLonPayload {
+  float f[2];
+  byte s[8];
+};
 
 class LoRA{
 public:
@@ -22,7 +22,6 @@ public:
 
     void init();
     void update();
-
 
     void set_send_lat_lon(float lat, float lon);
     void get_rcv_lat_lon(float& lat_out, float& lon_out);
@@ -76,13 +75,14 @@ private:
     void ConfigureLoRa(unsigned short address);
     char extract_char_after_second_comma(const char *str);
     void SendLoRa(String sendCode, String payload);
+    void SendLoRa(String sendCode, byte* payload, unsigned int num_bytes);
     void LoRaBand();
     void SendLatLon();
     void SendIncremented();
     void SendDiscovery();
     void ProcessDiscovery();
-    void ProcessConversation(String payload);
-    void ProcessLoRa(String cmd);
+    void ProcessConversation(byte* payload_buffer, int payload_len);
+    void ProcessLoRa(byte* msg_buffer, int msg_len);
     void PollLoRa();
     unsigned long GetNextDiscovery();
     void EnterDiscoveryState();

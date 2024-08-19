@@ -53,7 +53,9 @@ void update_display(void){
   display.print(recv_lon);
   display.println("");
 
-  display.println(("metrics ..."));
+  display.print(("heading: "));
+  display.print(heading_degrees);
+  display.println("");
 
   display.display();
 }
@@ -105,9 +107,6 @@ void setup()
   GPS_SERIAL.begin(9600);
   SerialLoRa.begin(115200);
 
-  delay(2000);
-  Serial.println("awd");
-
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     Serial.println(F("SSD1306 allocation failed"));
@@ -121,32 +120,16 @@ void setup()
 
 void loop()
 {
-
-
   smartdelay(0);
   gps.f_get_position(&flat, &flon, &age);
-	// Serial.print("gps lat/lon");
-	// Serial.print(flat);
-	// Serial.print(", ");
-	// Serial.print(flon);
-	// Serial.println("");
 
   lora.set_send_lat_lon(flat, flon);
   lora.update();
 
   lora.get_rcv_lat_lon(recv_lat, recv_lon);
 
-  	// Serial.print("recv lat/lon");
-	// Serial.print(recv_lat);
-	// Serial.print(", ");
-	// Serial.print(recv_lon);
-	// Serial.println("");
 
   heading_degrees = calculate_heading(flat, flon, recv_lat, recv_lon);
-	// Serial.print("heading_degrees");
-	// Serial.println(heading_degrees);
-
-
 
   update_display();
 }

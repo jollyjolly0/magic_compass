@@ -115,10 +115,25 @@ char LoRA::extract_char_after_second_comma(const char *str) {
     return '\0';
 }
 
+void LoRA::SendLoRa(String sendCode, byte* payload, unsigned int num_bytes){
 
+  logging_serial.print("Send LoRa bytearray cmd: ");
+  String cmd = "AT+SEND=0,"+String(num_bytes + 1) + "," + String(sendCode);
+  
+  byte* cmd_bytes = new byte[cmd.length() + num_bytes + 1];
+
+  memcpy(cmd_bytes, cmd.c_str(), cmd.length());
+  memcpy(cmd_bytes + cmd.length(), payload, num_bytes );
+  memcpy(cmd_bytes + cmd.length() + num_bytes, "\r", 1 );
+
+  logging_serial.println(( char*)cmd_bytes);
+  lora_serial.println(( char*)cmd_bytes);
+
+  delete[] cmd_bytes;
+}
 
 void LoRA::SendLoRa(String sendCode, String payload){
-  logging_serial.print("Send LoRa cmd: ");
+  logging_serial.print("Send LoRa String cmd: ");
   String cmd = "AT+SEND=0,"+String(payload.length() + 1) +","+ String(sendCode) + String(payload)+"\r";
   logging_serial.println(cmd);
   lora_serial.println(cmd);
@@ -131,27 +146,49 @@ void LoRA::LoRaBand(){
   lora_serial.println(cmd);
 }
 
+
 void LoRA::SendLatLon() {
   float lat = send_lat;
   float lon = send_lon;
 
-  char* p_lat = (char*)(&lat);
-  char* p_lon = (char*)(&lon);
-
-  // clean this up? ...
-  String payload = String("LAT_LON_");  // lol ;)
-
-  memcpy(&(payload[0]), p_lat, 4);
-  memcpy(&(payload[4]), p_lon, 4);
+  LatLonPayload latlon_payload;
+  latlon_payload.f[0] = lat;
+  latlon_payload.f[1] = lon;
 
   logging_serial.print("preparing lat lon payload: ");
-  logging_serial.println(payload);
+  // logging_serial.println(String(latlon_payload.s));
+
+
+  // debuging lat lon
+  char buffer[100];  // Adjust size as needed
+  sprintf(buffer, "\t lat: %.3f lon: %.3f, bytes: [%d %d %d %d] , [%d %d %d %d]", lat, lon,
+    (byte)latlon_payload.s[0], 
+    (byte)latlon_payload.s[1],
+    (byte)latlon_payload.s[2],
+    (byte)latlon_payload.s[3],
+    (byte)latlon_payload.s[4], 
+    (byte)latlon_payload.s[5],
+    (byte)latlon_payload.s[6],
+    (byte)latlon_payload.s[7]);
+
+  String log_string = String(buffer);
+
+  logging_serial.println("Debug_lat_lon");
+  logging_serial.println(log_string);
+
+  LatLonPayload converted_latlon;
+  memcpy(converted_latlon.s, latlon_payload.s, 8);
+
+  logging_serial.println(converted_latlon.f[0]);
+  logging_serial.println(converted_latlon.f[1]);
 
 
   logging_serial.print(  (String("Sending Lat Lon : ") +  String(millis()) ) + "\n" );
 
-  SendLoRa(SENDCODE_CONV, payload);
+  SendLoRa(SENDCODE_CONV, latlon_payload.s , 8); // sizeof(latlonPayload)
 }
+
+
 
 void LoRA::SendIncremented(){
     logging_serial.print("Time since last send: ");
@@ -185,73 +222,83 @@ void LoRA::ProcessDiscovery(){
   // EnterConversationState();
 }
 
-void LoRA::ProcessConversation(String payload){
+void LoRA::ProcessConversation(byte* payload_ptr, int payload_len){
 
   lastRcvTime = millis();
 
   logging_serial.print("Conversation Processed: ");
-  logging_serial.println(payload);
+  logging_serial.write(payload_ptr, (size_t)payload_len);
+  logging_serial.println("");
 
-  // payload is presumed to be 8bytes. 
-  // first 4 is lat as a float, second 4 is long
-  String lat_str = payload.substring(0, 4);
-  String lon_str = payload.substring(4, 8);
-  float lat;
-  float lon;
+  LatLonPayload recv_latlon;
+  memcpy(recv_latlon.s, payload_ptr, payload_len);
+  
+  rcv_lat = recv_latlon.f[0];
+  rcv_lon = recv_latlon.f[1];
 
-  memcpy(&lat, lat_str.c_str(), 4);
-  memcpy(&lon, lon_str.c_str(), 4);
+  // debuging lat lon
+  char buffer[100];  // Adjust size as needed
+  sprintf(buffer, "\t lat: %.3f lon: %.3f, bytes: [%d %d %d %d] , [%d %d %d %d]", rcv_lat, rcv_lon,
+    (byte)recv_latlon.s[0], 
+    (byte)recv_latlon.s[1],
+    (byte)recv_latlon.s[2],
+    (byte)recv_latlon.s[3],
+    (byte)recv_latlon.s[4], 
+    (byte)recv_latlon.s[5],
+    (byte)recv_latlon.s[6],
+    (byte)recv_latlon.s[7]);
 
-  rcv_lat = lat;
-  rcv_lon = lon;
-
+  String log_string = String(buffer);
+  logging_serial.println(log_string);
 }
 
-void LoRA::ProcessLoRa(String cmd){
+void LoRA::ProcessLoRa(byte* msg_buffer, int msg_len){
   // check for REC string
 
   // too short to be a usable payload
-  if (cmd.length() < 14) {
+  if (msg_len < 14) {
     logging_serial.print("Received packet too small for transmission: ");
-    logging_serial.println(cmd);
+    logging_serial.write(msg_buffer, (size_t)msg_len);
     return;
   }
 
   // check for REC string
-  String recv = cmd.substring(0, 4);
+  // String recv = cmd.substring(0, 4);
+  String recv(reinterpret_cast<char*>(msg_buffer + 0), 4);
   if (recv != "+RCV") {
     logging_serial.print("Not a receive packet. discarding : ");
-    logging_serial.println(cmd);
+    logging_serial.write(msg_buffer, (size_t)msg_len);
     return;
   }
 
 
   logging_serial.print("Process LoRa message: ");
-  logging_serial.println(cmd);
+  logging_serial.write(msg_buffer, (size_t)msg_len);
 
   // TODO properly parse string 
   
   // String sendCode_str = cmd.substring(14,15);
-  String sendCode_str = String(extract_char_after_second_comma(cmd.c_str()));
+  String sendCode_str = String(extract_char_after_second_comma((char*)msg_buffer));
 
   logging_serial.print("sendCode_str: ");
   logging_serial.println(sendCode_str);
 
-  String payloadLen_str = cmd.substring(10, 14);
-  int payloadLen = payloadLen_str.toInt();
+  // String payloadLen_str = cmd.substring(10, 14);
+  int payloadLen = 8;//payloadLen_str.toInt();
 
-  logging_serial.print("payloadLen_str: ");
-  logging_serial.println(payloadLen_str);
+  // logging_serial.print("payloadLen_str: ");
+  // logging_serial.println(payloadLen_str);
 
-  String payload_str = cmd.substring(14, 15 + payloadLen);
+  byte* payload_ptr = (msg_buffer + 14);
 
   logging_serial.print("payload_str: ");
-  logging_serial.println(payload_str);
+  logging_serial.write(payload_ptr, (size_t)payloadLen);
+  logging_serial.println("");
 
   if (sendCode_str == SENDCODE_DISCOVERY){
     ProcessDiscovery();
   }else if (sendCode_str == SENDCODE_CONV){
-    ProcessConversation(payload_str);
+    ProcessConversation(payload_ptr, payloadLen);
   }
 
 }
@@ -259,15 +306,23 @@ void LoRA::ProcessLoRa(String cmd){
 void LoRA::PollLoRa(){
   //logging_serial.println("Polling for LoRa message");
   String inString;
+
+  const int MAX_MSG_LEN = 100;
+
+  byte msg_buffer[MAX_MSG_LEN] = {};
+  int msg_index = 0;
   
   if(lora_serial.available()){
     while (lora_serial.available()){
     // should this be a while loop? can it build up multiple messages? 
       if(lora_serial.available()){
-        inString += String(char(lora_serial.read()));
+        msg_buffer[msg_index] = byte(lora_serial.read());
+        msg_index++;
+
+        // TODO check if we overflow
       }
     }
-    ProcessLoRa(inString);
+    ProcessLoRa(msg_buffer, msg_index);
   }
 }
 
