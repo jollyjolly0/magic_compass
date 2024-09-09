@@ -1,7 +1,7 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_SH110X.h>
 
 #include <stdio.h>
 #include <math.h>
@@ -12,17 +12,19 @@
 #include "src/vector3/vector3.h"
 
 #define GPS_SERIAL Serial1
-#define SerialLoRa Serial2
+//#define SerialLoRa Serial2
+UART SerialLoRa(digitalPinToPinName(2), digitalPinToPinName(3), NC, NC);
+
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_HEIGHT 128 // OLED display height, in pixels
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64,
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x128
 
 #define PI 3.14159265358979323846
 
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SH1107 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 LoRA lora = LoRA(SerialLoRa, Serial);
 TinyGPS gps;
 
@@ -40,7 +42,7 @@ float heading_dist;
 void update_display(void){
   display.clearDisplay();
   display.setTextSize(1);             // Normal 1:1 pixel scale
-  display.setTextColor(SSD1306_WHITE);        // Draw white text
+  display.setTextColor(SH110X_WHITE);        // Draw white text
 
   display.setCursor(0,0);           
 
@@ -153,9 +155,8 @@ void setup()
   GPS_SERIAL.begin(9600);
   SerialLoRa.begin(115200);
 
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
+  if(!display.begin(SCREEN_ADDRESS, true)) {
+    Serial.println(F("SH1107 allocation failed"));
   }
 
   lora.init();
