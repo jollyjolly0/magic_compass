@@ -1,11 +1,35 @@
 
 # include "lora.h"
 
+void print_string_to_uart(Stream &uart, const char *str, int num_bytes) {
+  int writen = 0;
+  while (writen < num_bytes) {
+    writen++;
+    if (isprint(*str)) {
+      uart.print(*str);
+    } else {
+      uart.print("0x");
+      if (*str < 0x10) {
+        uart.print("0");
+      }
+      uart.print(*str, HEX);
+    }
+    
+    uart.print(" ");
+    
+    str++;
+  }
+  
+  uart.println();
+}
 
 String LoRA::BlockingCommandLoRa(String cmd){
   logging_serial.print("Blocking Command: ");
   logging_serial.println(cmd);
   lora_serial.println(cmd);
+  // TODO this should ideally use write to handle the data, and then send an empty printly to match the format it expects
+  // also data should not be stored in string
+  // lora_serial.write(cmd.c_str(), cmd.length());
   String response;
   // wait for response
   while (!lora_serial.available()) {
@@ -120,17 +144,30 @@ void LoRA::SendLoRa(String sendCode, byte* payload, unsigned int num_bytes){
   logging_serial.print("Send LoRa bytearray cmd: ");
   String cmd = "AT+SEND=0,"+String(num_bytes + 1) + "," + String(sendCode);
   
-  byte* cmd_bytes = new byte[cmd.length() + num_bytes + 1];
+  // (AT+SEND premable) + (SEND CODE BYTE) + (payload bytes) + (\r\n 0x00) (expects println format)
+  int send_bytes = cmd.length() + num_bytes;
+  byte* cmd_bytes = new byte[send_bytes];
 
-  logging_serial.print(cmd.length() + num_bytes + 1);
+  logging_serial.print(send_bytes);
   logging_serial.println("");
 
   memcpy(cmd_bytes, cmd.c_str(), cmd.length());
   memcpy(cmd_bytes + cmd.length(), payload, num_bytes );
-  memcpy(cmd_bytes + cmd.length() + num_bytes, "\r", 1 );
 
-  logging_serial.println(( char*)cmd_bytes);
-  lora_serial.println(( char*)cmd_bytes);
+  logging_serial.write(( const char*)cmd_bytes, send_bytes);
+  logging_serial.println();
+  print_string_to_uart(logging_serial, (const char*)cmd_bytes, send_bytes);
+  logging_serial.println();
+
+  // the REYAX chip expects commands to be sent in a println format with carriage return and such
+  // but we want to send binary data. easiest way is to write binary, and then empty new line
+  lora_serial.write(( const char*)cmd_bytes, send_bytes);
+  lora_serial.println("");
+  // logging_serial.println(( char*)cmd_bytes);
+  // lora_serial.println(( char*)cmd_bytes);
+
+  lora_serial.flush();
+
 
   delete[] cmd_bytes;
 }

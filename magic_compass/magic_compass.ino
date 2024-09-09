@@ -27,7 +27,9 @@ LoRA lora = LoRA(SerialLoRa, Serial);
 TinyGPS gps;
 
 
-float flat, flon;
+float flat = 420.0;
+float flon = 69.0;
+
 unsigned long age = 0;
 
 float recv_lat, recv_lon, recv_time;
