@@ -1,6 +1,8 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
+
+// the version for the 128x128 screen
 #include <Adafruit_SH110X.h>
 
 #include <stdio.h>
@@ -10,10 +12,12 @@
 
 #include "src/lora/lora.h"
 #include "src/vector3/vector3.h"
+#include "src/magnet/magnet.h"
+
 
 #define GPS_SERIAL Serial1
-//#define SerialLoRa Serial2
-UART SerialLoRa(digitalPinToPinName(2), digitalPinToPinName(3), NC, NC);
+#define SerialLoRa Serial2
+// UART SerialLoRa(digitalPinToPinName(2), digitalPinToPinName(3), NC, NC);
 
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -27,6 +31,7 @@ UART SerialLoRa(digitalPinToPinName(2), digitalPinToPinName(3), NC, NC);
 Adafruit_SH1107 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 LoRA lora = LoRA(SerialLoRa, Serial);
 TinyGPS gps;
+Magnet magnet = Magnet(Serial);
 
 
 float flat = 420.0;
@@ -38,6 +43,8 @@ float recv_lat, recv_lon, recv_time;
 
 float heading_degrees; //0 is north, 90 is east
 float heading_dist;
+
+float mag_heading;
 
 void update_display(void){
   display.clearDisplay();
@@ -79,6 +86,10 @@ void update_display(void){
   int time_diff = (millis() - recv_time)/1000;
   display.print(("dt: "));
   display.print(time_diff);
+  display.println("");
+
+  display.print(("mag_heading: "));
+  display.print(mag_heading);
   display.println("");
 
   display.display();
@@ -143,7 +154,7 @@ float calculate_distance(float lat1, float lon1, float lat2, float lon2) {
     
     float distance = R * c;
     
-    return 0;//distance;
+    return distance;
 }
 
 
@@ -161,6 +172,9 @@ void setup()
 
   lora.init();
 
+    Serial.println(F("inited"));
+
+  magnet.init();
 }
 
 
@@ -179,6 +193,10 @@ void loop()
 
   heading_degrees = calculate_heading(flat, flon, recv_lat, recv_lon);
   heading_dist = calculate_distance(flat, flon, recv_lat, recv_lon);
+
+  magnet.update();
+  Serial.println(magnet.heading);
+  mag_heading = magnet.heading;
 
   update_display();
 }

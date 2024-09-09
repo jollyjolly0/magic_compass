@@ -16,11 +16,11 @@ void vec3::printvec(vec3 vec)
 //     return { x+a.x,  y+a.y, z+a.z };
 // }
 
-vec3 vec3::vecAdd(vec3 a, vec3 b){
+vec3 vecAdd(vec3 a, vec3 b){
   return { a.x+b.x,  a.y+b.y, a.z+b.z };
 }
 
-vec3 vec3::vecSub(vec3 a, vec3 b){
+vec3 vecSub(vec3 a, vec3 b){
   return { a.x-b.x,  a.y-b.y, a.z-b.z };
 }
 
@@ -29,11 +29,11 @@ vec3 vec3::vecMult(vec3 a, float c){
 }
 
 
-float vec3::vecDot(vec3 a, vec3 b){
+float vecDot(vec3 a, vec3 b){
   return { a.x*b.x +  a.y*b.y + a.z*b.z };
 }
 
-vec3 vec3::vecCross(vec3 a, vec3 b){
+vec3 vecCross(vec3 a, vec3 b){
   vec3 ret;
   ret.x = (a.y * b.z - a.z * b.y);
   ret.y = (a.z * b.x - a.x * b.z);
