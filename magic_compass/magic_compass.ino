@@ -195,7 +195,7 @@ void loop()
   heading_dist = calculate_distance(flat, flon, recv_lat, recv_lon);
 
   magnet.update();
-  Serial.println(magnet.heading);
+  // Serial.println(magnet.heading);
   mag_heading = magnet.heading;
 
   update_display();

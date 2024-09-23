@@ -35,21 +35,26 @@ vec3 Magnet::getaverage()
 }
 
 void Magnet::update() {
+  char buff[100];
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(grav.y, grav.x, grav.z);// NOTE Y, X, Z order
-    grav.z *= -1.0f;
+    // known magnet vector in earth coords points north and into earth
+    // known gravity vector in earth coords points into earth 
+    // tested by determining positive mag axis (poingint in positive direction wrt to known mag field north and into earth)
+    grav.y *= -1.0f;
   }
   if (IMU.magneticFieldAvailable()) {
     IMU.readMagneticField(mag.x, mag.y, mag.z);
-    mag.y *= -1.0f;
-    mag.z *= -1.0f;
   }
   else{
     // logging_serial.println("can't load mag field");
     return;
   } 
-    
-
+    Serial.println("Data Vals");
+    sprintf(buff , "\t acc %f , %f, %f", grav.x, grav.y, grav.z);
+    Serial.println(buff);
+    sprintf(buff , "\t raw : %f , %f, %f", mag.x, mag.y, mag.z);
+    Serial.println(buff);
 
 
   vec3 gravnorm;
@@ -75,23 +80,38 @@ void Magnet::update() {
   magcal.y *= mul_y;
   magcal.z *= mul_z;
 
+  sprintf(buff , "\t cal : %f , %f, %f", magcal.x, magcal.y, magcal.z);
+  Serial.println(buff);
+
   calibratedbuffer[bufferindex] = magcal;
   bufferindex++;
   bufferindex = bufferindex % 5;
 
   magcal = getaverage();
   magcal = magcal.vecNormalize();
+
   gravnorm = grav.vecNormalize();
+
+  sprintf(buff , "\t avg : %f , %f, %f", magcal.x, magcal.y, magcal.z);
+  Serial.println(buff);
+
   flatwest = vecCross(magcal, gravnorm);
+
   
   flatwest = flatwest.vecNormalize();
   flatnorth = vecCross(gravnorm, flatwest);
   flatnorth = flatnorth.vecNormalize();
 
+  sprintf(buff , "\t wst : %f , %f, %f", flatwest.x, flatwest.y, flatwest.z);
+  Serial.println(buff);
+  sprintf(buff , "\t nth : %f , %f, %f", flatnorth.x, flatnorth.y, flatnorth.z);
+  Serial.println(buff);
+
   float theta_z = atan2(flatnorth.y, flatnorth.x) * to_angle;
-  theta_z *= -1.f;
-  theta_z += 90.f;
   float len = flatnorth.vecLen();
+
+  sprintf(buff , "\t theta :  %f", theta_z);
+  Serial.println(buff);
 
 
 // For now, don't update it, just pass the values in
@@ -127,55 +147,56 @@ void Magnet::update() {
 //   }
   
   //print direction
-  if(theta_z > -15 && theta_z < 15)
-  {
-    Serial.print("N");
-  }
-  else if(theta_z >= 15 && theta_z <= 75)
-  {
-    Serial.print("NW");
-  }
-  else if(theta_z > 75 && theta_z < 105)
-  {
-    Serial.print("W");
-  }
-  else if(theta_z >= 105 && theta_z <= 165)
-  {
-    Serial.print("SW");
-  }
-  else if(theta_z > 165 && theta_z < 195)
-  {
-    Serial.print("S");
-  }
-  else if(theta_z >= 195 && theta_z <= 255)
-  {
-    Serial.print("SE");
-  }
-  else if(theta_z >= -75 && theta_z <= -15)
-  {
-    Serial.print("NE");
-  }
-  else if(theta_z > 255 || theta_z < -75)
-  {
-    Serial.print("E");
-  }
+  // if(theta_z > -15 && theta_z < 15)
+  // {
+  //   Serial.print("N");
+  // }
+  // else if(theta_z >= 15 && theta_z <= 75)
+  // {
+  //   Serial.print("NW");
+  // }
+  // else if(theta_z > 75 && theta_z < 105)
+  // {
+  //   Serial.print("W");
+  // }
+  // else if(theta_z >= 105 && theta_z <= 165)
+  // {
+  //   Serial.print("SW");
+  // }
+  // else if(theta_z > 165 && theta_z < 195)
+  // {
+  //   Serial.print("S");
+  // }
+  // else if(theta_z >= 195 && theta_z <= 255)
+  // {
+  //   Serial.print("SE");
+  // }
+  // else if(theta_z >= -75 && theta_z <= -15)
+  // {
+  //   Serial.print("NE");
+  // }
+  // else if(theta_z > 255 || theta_z < -75)
+  // {
+  //   Serial.print("E");
+  // }
  //printvec(grav);
  //Serial.print('|');
  //printvec(flatnorth);
- Serial.print('\t');
- Serial.println(theta_z);
- Serial.print(min_x);
- Serial.print(",");
- Serial.print(min_y);
- Serial.print(",");
- Serial.print(min_z);
- Serial.print(",");
- Serial.print(max_x);
- Serial.print(",");
- Serial.print(max_y);
- Serial.print(",");
- Serial.print(max_z);
- Serial.println(",");
+
+//  Serial.print('\t');
+//  Serial.println(theta_z);
+//  Serial.print(min_x);
+//  Serial.print(",");
+//  Serial.print(min_y);
+//  Serial.print(",");
+//  Serial.print(min_z);
+//  Serial.print(",");
+//  Serial.print(max_x);
+//  Serial.print(",");
+//  Serial.print(max_y);
+//  Serial.print(",");
+//  Serial.print(max_z);
+//  Serial.println(",");
 
  //Serial.print("\t [");
  //Serial.print(min_x);
@@ -198,13 +219,15 @@ void Magnet::update() {
  //Serial.print('\n');
 
     // this is based on the device being arranged with "+X" being forward. with degrees east as positive 
-     heading = theta_z;
-     heading = 180 - (heading + 90);
-     heading = heading + 40.0; // approximate declination correction for irvine CA
+    //  heading = -theta_z -11.0f; // approximate declination correction for irvine CA
+     heading = -theta_z; // approximate declination correction for irvine CA
+
     if (heading < 0){
         heading = heading + 360.0;
     }
     if (heading >= 360.0){
         heading = heading - 360.0f;
     }
+    sprintf(buff , "\t heading :  %f", heading);
+    Serial.println(buff);
 }
