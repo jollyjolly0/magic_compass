@@ -50,7 +50,7 @@ void LoRA::ConfigureLoRa(unsigned short address) {
   // blocks until setup
   // only devices on same network can communicate
   const String NETWORK_ID = "4";
-  const String FREQ_BAND = "915000000";
+  const String FREQ_BAND = "915000000"; //470000000 this should give better wall penetration adn distance 
 
   const String SPREAD_FACTOR = "12"; // this determines how "wide" the chirps are. larger spread takes longer to transmit, but more resilient to noise
   const String BANDWIDTH = "7"; // how much data you will try to push through per second? 7 = 125 KHz
@@ -345,6 +345,13 @@ void LoRA::ProcessLoRa(byte* msg_buffer, int msg_len){
   }else if (sendCode_str == SENDCODE_CONV){
     ProcessConversation(payload_ptr, payloadLen);
   }
+
+  byte* stats_pts = (payload_ptr + payloadLen+1); // prev + payload + comma
+  int stats_len = strlen((char*)stats_pts);
+  logging_serial.write(stats_pts,stats_len);
+  logging_serial.println("");
+
+  stats = String((char*)stats_pts);
 
 }
 

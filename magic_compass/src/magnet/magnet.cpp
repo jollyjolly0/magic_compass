@@ -50,11 +50,11 @@ void Magnet::update() {
     // logging_serial.println("can't load mag field");
     return;
   } 
-    Serial.println("Data Vals");
-    sprintf(buff , "\t acc %f , %f, %f", grav.x, grav.y, grav.z);
-    Serial.println(buff);
-    sprintf(buff , "\t raw : %f , %f, %f", mag.x, mag.y, mag.z);
-    Serial.println(buff);
+    // Serial.println("Data Vals");
+    // sprintf(buff , "\t acc %f , %f, %f", grav.x, grav.y, grav.z);
+    // Serial.println(buff);
+    // sprintf(buff , "\t raw : %f , %f, %f", mag.x, mag.y, mag.z);
+    // Serial.println(buff);
 
 
   vec3 gravnorm;
@@ -80,8 +80,8 @@ void Magnet::update() {
   magcal.y *= mul_y;
   magcal.z *= mul_z;
 
-  sprintf(buff , "\t cal : %f , %f, %f", magcal.x, magcal.y, magcal.z);
-  Serial.println(buff);
+  // sprintf(buff , "\t cal : %f , %f, %f", magcal.x, magcal.y, magcal.z);
+  // Serial.println(buff);
 
   calibratedbuffer[bufferindex] = magcal;
   bufferindex++;
@@ -92,8 +92,8 @@ void Magnet::update() {
 
   gravnorm = grav.vecNormalize();
 
-  sprintf(buff , "\t avg : %f , %f, %f", magcal.x, magcal.y, magcal.z);
-  Serial.println(buff);
+  // sprintf(buff , "\t avg : %f , %f, %f", magcal.x, magcal.y, magcal.z);
+  // Serial.println(buff);
 
   flatwest = vecCross(magcal, gravnorm);
 
@@ -102,16 +102,16 @@ void Magnet::update() {
   flatnorth = vecCross(gravnorm, flatwest);
   flatnorth = flatnorth.vecNormalize();
 
-  sprintf(buff , "\t wst : %f , %f, %f", flatwest.x, flatwest.y, flatwest.z);
-  Serial.println(buff);
-  sprintf(buff , "\t nth : %f , %f, %f", flatnorth.x, flatnorth.y, flatnorth.z);
-  Serial.println(buff);
+  // sprintf(buff , "\t wst : %f , %f, %f", flatwest.x, flatwest.y, flatwest.z);
+  // Serial.println(buff);
+  // sprintf(buff , "\t nth : %f , %f, %f", flatnorth.x, flatnorth.y, flatnorth.z);
+  // Serial.println(buff);
 
   float theta_z = atan2(flatnorth.y, flatnorth.x) * to_angle;
   float len = flatnorth.vecLen();
 
-  sprintf(buff , "\t theta :  %f", theta_z);
-  Serial.println(buff);
+  // sprintf(buff , "\t theta :  %f", theta_z);
+  // Serial.println(buff);
 
 
 // For now, don't update it, just pass the values in
@@ -228,6 +228,6 @@ void Magnet::update() {
     if (heading >= 360.0){
         heading = heading - 360.0f;
     }
-    sprintf(buff , "\t heading :  %f", heading);
-    Serial.println(buff);
+    // sprintf(buff , "\t heading :  %f", heading);
+    // Serial.println(buff);
 }

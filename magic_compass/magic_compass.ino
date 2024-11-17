@@ -92,6 +92,10 @@ void update_display(void){
   display.print(mag_heading);
   display.println("");
 
+  display.print(("lora_stats: "));
+  display.print(lora.stats);
+  display.println("");
+
   display.display();
 }
 
@@ -181,6 +185,7 @@ void setup()
 
 void loop()
 {
+
   smartdelay(0);
   gps.f_get_position(&flat, &flon, &age);
 

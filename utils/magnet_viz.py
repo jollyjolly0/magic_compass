@@ -48,7 +48,8 @@ def render_data(data):
 
     
     points = data[0:1000]
-    
+
+
     calib_data = get_calibration_data(points)
     # points = calib_data
 
@@ -82,7 +83,13 @@ def render_data(data):
                                 [0, 0, 0, 1]])
     visualizer.get_view_control().convert_from_pinhole_camera_parameters(params)
 
-    visualizer.run()
+
+    while True:
+        visualizer.update_geometry(point_cloud)
+        visualizer.poll_events()
+        visualizer.update_renderer()
+        if visualizer.poll_events() == False:
+            break
 
     visualizer.destroy_window()
 
@@ -97,13 +104,16 @@ def gather_data(save_name):
 
     try:
         while True:
-            d = ser.readline().decode().strip()
-            print(d)
-            x, y, z = map(float, d.split(','))
-            data[data_idx] = [x,y,z]
-            data_idx+=1
-            if data_idx >= max_data:
-                break
+            try:
+                d = ser.readline().decode().strip()
+                print(d)
+                x, y, z = map(float, d.split(','))
+                data[data_idx] = [x,y,z]
+                data_idx+=1
+                if data_idx >= max_data:
+                    break
+            except ValueError:
+                pass
     except KeyboardInterrupt:
         print("Program terminated by user.")
         ser.close()

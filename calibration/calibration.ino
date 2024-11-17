@@ -123,18 +123,22 @@ vec3 getaverage()
 }
 
 void loop() {
+  char buff[100];
   if (IMU.accelerationAvailable()) {
     IMU.readAcceleration(grav.y, grav.x, grav.z);// NOTE Y, X, Z order
-    grav.z *= -1.0f;
+
   }
   if (IMU.magneticFieldAvailable()) {
     IMU.readMagneticField(mag.x, mag.y, mag.z);
-    mag.y *= -1.0f;
-    mag.z *= -1.0f;
   }
-  else return;
-
-
+  else{
+    // logging_serial.println("can't load mag field");
+    return;
+  } 
+    sprintf(buff , "\t Accel (x,y,z) %f , %f, %f", grav.x, grav.y, grav.z);
+    Serial.println(buff);
+    sprintf(buff , "\t Mag (x,-y,-z) %f , %f, %f", mag.x, mag.y, mag.z);
+    Serial.println(buff);
 
   vec3 gravnorm;
   vec3 magcal; //calibrated magnetometer
@@ -210,43 +214,55 @@ void loop() {
   }
   
   //print direction
-  if(theta_z > -15 && theta_z < 15)
-  {
-    Serial.print("N");
-  }
-  else if(theta_z >= 15 && theta_z <= 75)
-  {
-    Serial.print("NW");
-  }
-  else if(theta_z > 75 && theta_z < 105)
-  {
-    Serial.print("W");
-  }
-  else if(theta_z >= 105 && theta_z <= 165)
-  {
-    Serial.print("SW");
-  }
-  else if(theta_z > 165 && theta_z < 195)
-  {
-    Serial.print("S");
-  }
-  else if(theta_z >= 195 && theta_z <= 255)
-  {
-    Serial.print("SE");
-  }
-  else if(theta_z >= -75 && theta_z <= -15)
-  {
-    Serial.print("NE");
-  }
-  else if(theta_z > 255 || theta_z < -75)
-  {
-    Serial.print("E");
-  }
+  // if(theta_z > -15 && theta_z < 15)
+  // {
+  //   Serial.print("N");
+  // }
+  // else if(theta_z >= 15 && theta_z <= 75)
+  // {
+  //   Serial.print("NW");
+  // }
+  // else if(theta_z > 75 && theta_z < 105)
+  // {
+  //   Serial.print("W");
+  // }
+  // else if(theta_z >= 105 && theta_z <= 165)
+  // {
+  //   Serial.print("SW");
+  // }
+  // else if(theta_z > 165 && theta_z < 195)
+  // {
+  //   Serial.print("S");
+  // }
+  // else if(theta_z >= 195 && theta_z <= 255)
+  // {
+  //   Serial.print("SE");
+  // }
+  // else if(theta_z >= -75 && theta_z <= -15)
+  // {
+  //   Serial.print("NE");
+  // }
+  // else if(theta_z > 255 || theta_z < -75)
+  // {
+  //   Serial.print("E");
+  // }
  //printvec(grav);
  //Serial.print('|');
  //printvec(flatnorth);
- Serial.print('\t');
- Serial.println(theta_z);
+//  Serial.print('\t');
+//  Serial.println(theta_z);
+
+
+//  Serial.print(" Magx: ");
+//  Serial.print(mag.x);
+//  Serial.print(",");
+//  Serial.print(mag.y);
+//  Serial.print(",");
+//  Serial.print(mag.z);
+// //  Serial.print(",");
+//  Serial.println("");
+
+
 
  //Serial.print("\t [");
  //Serial.print(min_x);

@@ -27,6 +27,8 @@ public:
     void get_rcv_lat_lon(float& lat_out, float& lon_out);
     void get_rcv_time(float& last_time);
 
+    String stats;
+
 private:
 
     const int LORA_GENERATE_ID = 1234;
@@ -69,7 +71,6 @@ private:
     unsigned long nextDiscoveryTime = -1;   
 
     unsigned long nextConversationTime = -1;
-
 
 
 
